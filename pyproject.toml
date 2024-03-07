@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guanaco-trade"
+version = "0.0.1"
+authors = [
+    { name = "Ben Boonstra", email = "bboonstra@gmail.com" },
+]
+maintainers = [
+    { name = "Ben Boonstra", email = "bboonstra@gmail.com" },
+]
+description = "A stock trading tool that utilizes generative AI."
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+license = { file = "LICENSE.txt" }
+
+[project.urls]
+Homepage = "https://github.com/IceFire03/guanaco-trade"
+Issues = "https://github.com/IceFire03/guanaco-trade/issues"

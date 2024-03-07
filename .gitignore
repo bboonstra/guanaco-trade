@@ -1,0 +1,4 @@
+.DS_Store
+.idea
+venv
+/src/guanaco_trade.egg-info/
