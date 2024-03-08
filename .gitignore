@@ -2,3 +2,4 @@
 .idea
 venv
 /src/guanaco_trade.egg-info/
+src/_debug.py
