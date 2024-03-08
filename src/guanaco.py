@@ -7,11 +7,12 @@ from alpaca_trade_api import REST
 from bs4 import BeautifulSoup
 
 from configuration import *
-from data import Advice, Receipt
+from data import Advice, TradeReceipt
 
 
 class Trader:
-    def __init__(self, keys: KeysPackage, settings: SettingsPackage = DefaultSettingsPackage, prompts: PromptPackage = DefaultPromptPackage):
+    def __init__(self, keys: KeysPackage, settings: SettingsPackage = DefaultSettingsPackage,
+                 prompts: PromptPackage = DefaultPromptPackage):
         self.api = REST(keys.alpaca.key, secret_key=keys.alpaca.secret, base_url=keys.alpaca.url)
         self.client = openai.OpenAI(organization=keys.openai.org, api_key=keys.openai.key)
         self.settings = settings
@@ -24,7 +25,8 @@ class Trader:
                           "\nRecent news headlines: \n" + news +
                           "\nOpen positions:\n" + positions +
                           "\nBuying Power: $" + buying_power +
-                          "\nReply with a summary of this day and any information that may be needed tomorrow, 2 paragraphs max.")
+                          "\nReply with a summary of this day and any information that may be needed tomorrow, "
+                          "2 paragraphs max.")
 
         response = self.client.chat.completions.create(
             model=self.settings.model,
@@ -66,8 +68,9 @@ class Trader:
             thirty_arrow = "UP" if thirty_change > 0 else "DOWN"
             seven_arrow = "UP" if seven_change > 0 else "DOWN"
             one_arrow = "UP" if one_change > 0 else "DOWN"
-            formatted_data += f"{stock}-CP:{data.c},VW:{data.vw},1D:{one_arrow}{one_change}%,7D:{seven_arrow}{seven_change}%," \
-                              f"30D:{thirty_arrow} {thirty_change}%\n"
+            formatted_data += (f"{stock}-CP:{data.c},VW:{data.vw},"
+                               f"1D:{one_arrow}{one_change}%,7D:{seven_arrow}{seven_change}%,"
+                               f"30D:{thirty_arrow} {thirty_change}%\n")
         return formatted_data
 
     def get_news(self, stocks):
@@ -81,7 +84,8 @@ class Trader:
         positions_data = self.api.list_positions()
         formatted_positions = ""
         for position in positions_data:
-            formatted_positions += f"{position.symbol} x{position.qty} (${position.current_price} ea.); P/L: ${position.unrealized_pl}\n"
+            formatted_positions += (f"{position.symbol} x{position.qty} (${position.current_price} ea.); "
+                                    f"P/L: ${position.unrealized_pl}\n")
         return formatted_positions
 
     def get_advice(self, market_data: str, news: str, positions: str, buying_power: int) -> Advice:
@@ -93,7 +97,6 @@ class Trader:
                        "\nBuying Power: $" + str(buying_power) +
                        "\nUse the system's json format to reply.")
 
-        print(self.prediction_instructions, data_prompt)
         response = self.client.chat.completions.create(
             model=self.settings.model,
             response_format={"type": "json_object"},
@@ -114,8 +117,9 @@ class Trader:
         advice = Advice(adv_data['buy'], adv_data['sell'], adv_data['comment'])
         return advice
 
-    def execute_orders(self, advice: Advice):
-        receipt = Receipt() // TODO
+    def execute_orders(self, advice: Advice) -> TradeReceipt:
+        receipt = TradeReceipt("Transactions")
+
         for order in advice.sell:
             symbol, quantity = order['stock'], order['quantity']
             try:
@@ -126,8 +130,11 @@ class Trader:
                     type='market',
                     time_in_force='gtc'
                 )
+                quote = self.api.get_latest_quote(symbol)
+                price = quote.bp
+                receipt.add_trade("SOLD", symbol, quantity, price)
             except Exception as E:
-                print(f"Purchase failed; {E}")
+                receipt.add_entry(f"Purchase of {symbol} x{quantity} failed; {E}")
 
         for order in advice.buy:
             symbol, quantity = order['stock'], order['quantity']
@@ -139,6 +146,14 @@ class Trader:
                     type='market',
                     time_in_force='gtc'
                 )
+                quote = self.api.get_latest_quote(symbol)
+                price = quote.bp
+                receipt.add_trade("BOUGHT", symbol, quantity, price)
             except Exception as E:
-                print(f"Purchase failed; {E}")
+                receipt.add_entry(f"Purchase of {symbol} x{quantity} failed; {E}")
 
+        receipt.finalize()
+        return receipt
+
+    def get_account(self):
+        return self.api.get_account()
