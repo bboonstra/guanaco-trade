@@ -83,7 +83,8 @@ class PromptPackage(ConfigurationPackage):
                 # Assume it's a string message
                 return self._prediction_message
         else:
-            with open("commands/predict.txt", "r") as prompt:
+            f = __file__.replace("configuration.py", "")
+            with open(f+"commands/predict.txt", "r") as prompt:
                 return prompt.read()
 
     def summary(self):
@@ -97,7 +98,8 @@ class PromptPackage(ConfigurationPackage):
                 # Assume it's a string message
                 return self._summary_message
         else:
-            with open("commands/summarize.txt", "r") as prompt:
+            f = __file__.replace("configuration.py", "")
+            with open(f + "commands/summarize.txt", "r") as prompt:
                 return prompt.read()
 
 
